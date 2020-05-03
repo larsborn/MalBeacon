@@ -367,8 +367,8 @@ def main():
     c2country_parser = subparsers.add_parser('c2country', help='List beacons of specified C2 IP.')
     c2country_parser.add_argument('country')
 
-    c2asnorg_parser = subparsers.add_parser('c2asnorg', help='List beacons of specified C2 IP.')
-    c2asnorg_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
+    c2asn_parser = subparsers.add_parser('c2asn', help='List beacons of specified C2 IP.')
+    c2asn_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
 
     actorip_parser = subparsers.add_parser('actorip', help='List beacons of specified C2 IP.')
     actorip_parser.add_argument('ip')
@@ -382,8 +382,8 @@ def main():
     actorcountry_parser = subparsers.add_parser('actorcountry', help='List beacons of specified C2 IP.')
     actorcountry_parser.add_argument('country')
 
-    actorasnorg_parser = subparsers.add_parser('actorasnorg', help='List beacons of specified C2 IP.')
-    actorasnorg_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
+    actorasn_parser = subparsers.add_parser('actorasn', help='List beacons of specified C2 IP.')
+    actorasn_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
 
     useragent_parser = subparsers.add_parser('useragent', help='List beacons of specified C2 IP.')
     useragent_parser.add_argument('user_agent')
@@ -413,8 +413,8 @@ def main():
     client = MalBeaconClient(args.api_key, args.user_agent, args.base_url)
     try:
         if args.command in [
-            'cookie', 'c2ip', 'c2', 'c2city', 'c2country', 'c2asnorg', 'actorip', 'actorhostname', 'actorcity',
-            'actorcountry', 'actorasnorg', 'useragent', 'tag'
+            'cookie', 'c2ip', 'c2', 'c2city', 'c2country', 'c2asn', 'actorip', 'actorhostname', 'actorcity',
+            'actorcountry', 'actorasn', 'useragent', 'tag'
         ]:
             table_data = [['Timestamp', 'Actor IP', 'C2 URL']]
             user_agents = []
@@ -429,12 +429,12 @@ def main():
                 'c2': lambda: client.by_c2(args.c2),
                 'c2city': lambda: client.by_c2_city(args.city),
                 'c2country': lambda: client.by_c2_country(args.country),
-                'c2asnorg': lambda: client.by_c2_asn(args.asn),
+                'c2asn': lambda: client.by_c2_asn(args.asn),
                 'actorip': lambda: client.by_actor_ip(args.ip),
                 'actorhostname': lambda: client.by_actor_hostname(args.hostname),
                 'actorcity': lambda: client.by_actor_city(args.city),
                 'actorcountry': lambda: client.by_actor_country(args.country),
-                'actorasnorg': lambda: client.by_actor_asn(args.asn),
+                'actorasn': lambda: client.by_actor_asn(args.asn),
                 'useragent': lambda: client.by_user_agent(args.user_agent),
                 'tag': lambda: client.by_tag(Tag(args.tag)),
             }[args.command]():
