@@ -6,6 +6,7 @@ import json
 import os
 import re
 import datetime
+from urllib.parse import quote as url_quote
 
 import requests
 import requests.adapters
@@ -232,8 +233,8 @@ class C2Beacon:
             None if MalBeaconClient.is_null(response["c2region"]) else response["c2region"],
             None if MalBeaconClient.is_null(response["c2timezone"]) else response["c2timezone"],
             CookieId(response["cookie_id"]),
-            None if response["useragent"] == 'NA' else response["useragent"],
-            [] if response["tags"] == 'NA' else [Tag(response["tags"])],
+            None if MalBeaconClient.is_null(response["useragent"]) else response["useragent"],
+            [] if MalBeaconClient.is_null(response["tags"]) else [Tag(response["tags"])],
         )
 
     def __repr__(self):
@@ -273,9 +274,59 @@ class MalBeaconClient:
 
         return response.json()
 
-    def get_c2_by_cookies_id(self, cookie_id: CookieId) -> typing.List[C2Beacon]:
-        for line in self._get(self.base_url + F'/c2/cookie_id/{cookie_id}'):
-            yield C2Beacon.from_response_line(line)
+    def by_cookie_id(self, cookie_id: CookieId) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/cookie_id/{cookie_id}')]
+
+    def by_c2_ip(self, ip: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/c2ip/{ip}')]
+
+    def by_c2(self, c2: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/c2/{url_quote(c2)}')]
+
+    def by_c2_city(self, city: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/c2city/{city}')]
+
+    def by_c2_country(self, country: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/c2country/{country}')]
+
+    def by_c2_asn(self, asn: int) -> typing.List[C2Beacon]:
+        return [
+            C2Beacon.from_response_line(line) for line in
+            self._get(self.base_url + F'/c2/c2asnorg/{asn}')
+        ]
+
+    def by_actor_ip(self, ip: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/actorip/{ip}')]
+
+    def by_actor_hostname(self, hostname: str) -> typing.List[C2Beacon]:
+        return [
+            C2Beacon.from_response_line(line)
+            for line in self._get(self.base_url + F'/c2/actorhostname/{hostname}')
+        ]
+
+    def by_actor_city(self, city: str) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/actorcity/{city}')]
+
+    def by_actor_country(self, country: str) -> typing.List[C2Beacon]:
+        return [
+            C2Beacon.from_response_line(line)
+            for line in self._get(self.base_url + F'/c2/actorcountrycode/{country}')
+        ]
+
+    def by_actor_asn(self, asn: int) -> typing.List[C2Beacon]:
+        return [
+            C2Beacon.from_response_line(line)
+            for line in self._get(self.base_url + F'/c2/actorasnorg/{asn}')
+        ]
+
+    def by_user_agent(self, user_agent: str) -> typing.List[C2Beacon]:
+        return [
+            C2Beacon.from_response_line(line)
+            for line in self._get(self.base_url + F'/c2/useragent/{url_quote(user_agent)}')
+        ]
+
+    def by_tag(self, tag: Tag) -> typing.List[C2Beacon]:
+        return [C2Beacon.from_response_line(line) for line in self._get(self.base_url + F'/c2/tags/{tag}')]
 
 
 class ConsoleHandler(logging.Handler):
@@ -291,6 +342,42 @@ def main():
 
     cookie_id_parser = subparsers.add_parser('cookie', help='List beacons of specified cookie ID.')
     cookie_id_parser.add_argument('cookie_id')
+
+    c2ip_parser = subparsers.add_parser('c2ip', help='List beacons of specified C2 IP.')
+    c2ip_parser.add_argument('ip')
+
+    c2_parser = subparsers.add_parser('c2', help='List beacons of specified C2 IP.')
+    c2_parser.add_argument('c2')
+
+    c2city_parser = subparsers.add_parser('c2city', help='List beacons of specified C2 IP.')
+    c2city_parser.add_argument('city')
+
+    c2country_parser = subparsers.add_parser('c2country', help='List beacons of specified C2 IP.')
+    c2country_parser.add_argument('country')
+
+    c2asnorg_parser = subparsers.add_parser('c2asnorg', help='List beacons of specified C2 IP.')
+    c2asnorg_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
+
+    actorip_parser = subparsers.add_parser('actorip', help='List beacons of specified C2 IP.')
+    actorip_parser.add_argument('ip')
+
+    actorhostname_parser = subparsers.add_parser('actorhostname', help='List beacons of specified C2 IP.')
+    actorhostname_parser.add_argument('hostname')
+
+    actorcity_parser = subparsers.add_parser('actorcity', help='List beacons of specified C2 IP.')
+    actorcity_parser.add_argument('city')
+
+    actorcountry_parser = subparsers.add_parser('actorcountry', help='List beacons of specified C2 IP.')
+    actorcountry_parser.add_argument('country')
+
+    actorasnorg_parser = subparsers.add_parser('actorasnorg', help='List beacons of specified C2 IP.')
+    actorasnorg_parser.add_argument('asn', type=Guesser.guess_numeric_asn_from_organization_string)
+
+    useragent_parser = subparsers.add_parser('useragent', help='List beacons of specified C2 IP.')
+    useragent_parser.add_argument('user_agent')
+
+    tag_parser = subparsers.add_parser('tag', help='List beacons of specified C2 IP.')
+    tag_parser.add_argument('tag')
 
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--json', action='store_true')
@@ -313,14 +400,29 @@ def main():
     logger.debug(F'Using User-Agent string: {args.user_agent}')
     client = MalBeaconClient(args.api_key, args.user_agent, args.base_url)
     try:
-        if args.command == 'cookie':
-            from terminaltables import GithubFlavoredMarkdownTable as TerminalTable
-
-            table_data = [['Timestamp', 'IP', 'URL']]
+        if args.command in [
+            'cookie', 'c2ip', 'c2', 'c2city', 'c2country', 'c2asnorg', 'actorip', 'actorhostname', 'actorcity',
+            'actorcountry', 'actorasnorg', 'useragent', 'tag'
+        ]:
+            table_data = [['Timestamp', 'Actor IP', 'C2 URL']]
             user_agents = []
             reduced_data = False
             activity_timestamps = []
-            for c2_beacon in client.get_c2_by_cookies_id(CookieId(args.cookie_id)):
+            for c2_beacon in {
+                'cookie': lambda: client.by_cookie_id(CookieId(args.cookie_id)),
+                'c2ip': lambda: client.by_c2_ip(args.ip),
+                'c2': lambda: client.by_c2(args.c2),
+                'c2city': lambda: client.by_c2_city(args.city),
+                'c2country': lambda: client.by_c2_country(args.country),
+                'c2asnorg': lambda: client.by_c2_asn(args.asn),
+                'actorip': lambda: client.by_actor_ip(args.ip),
+                'actorhostname': lambda: client.by_actor_hostname(args.hostname),
+                'actorcity': lambda: client.by_actor_city(args.city),
+                'actorcountry': lambda: client.by_actor_country(args.country),
+                'actorasnorg': lambda: client.by_actor_asn(args.asn),
+                'useragent': lambda: client.by_user_agent(args.user_agent),
+                'tag': lambda: client.by_tag(Tag(args.tag)),
+            }[args.command]():
                 if args.json:
                     print(json.dumps(c2_beacon, cls=CustomJsonEncoder))
                 else:
@@ -338,12 +440,14 @@ def main():
                         c2_beacon.actor_ip,
                         c2_beacon.c2
                     ])
+
             if not args.json:
+                from terminaltables import GithubFlavoredMarkdownTable as TerminalTable
                 print(TerminalTable(table_data=table_data).table)
                 if user_agents:
                     print('')
                     print('User-Agents:')
-                    for user_agent in user_agents:
+                    for user_agent in user_agents[:5]:
                         print(F'    {user_agent}')
                     if len(user_agents) > 5:
                         print('    ...')
