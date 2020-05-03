@@ -38,6 +38,13 @@ class DateTimeFactory:
         return datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
 
 
+class Guesser:
+    @staticmethod
+    def guess_numeric_asn_from_organization_string(organization):
+        match = re.search(r'\d{2,8}', organization)
+        return int(match.group(0), 10) if match else None
+
+
 class MalBeaconException(Exception):
     pass
 
@@ -112,7 +119,7 @@ class CustomJsonEncoder(json.JSONEncoder):
                 'actor_region': o.actor_region,
                 'actor_timezone': o.actor_timezone,
                 'c2': o.c2,
-                'c2_asn_org': o.c2_asn_org,
+                'c2_asn_organization': o.c2_asn_organization,
                 'c2_city': o.c2_city,
                 'c2_country_code': o.c2_country_code,
                 'c2_domain': o.c2_domain,
@@ -142,6 +149,7 @@ class GeoLocation:
 
     @staticmethod
     def from_string(s):
+        assert s is not None
         # regex that matches on geo-location with 4 digits precision
         m = re.match(r'^(-?\d+(?:\.\d{4})?),\s*(-?\d+(?:\.\d{4})?)$', s)
         if not m:
@@ -174,7 +182,7 @@ class Tag:
 class C2Beacon:
     def __init__(self, timestamp: datetime, actor_asn_organization: str, actor_city: str,
                  actor_country_code: CountryCode, actor_hostname: str, actor_ip: str, actor_location: GeoLocation,
-                 actor_region: str, actor_timezone: Timezone, c2: str, c2_asn_org: str, c2_city: str,
+                 actor_region: str, actor_timezone: Timezone, c2: str, c2_asn_organization: str, c2_city: str,
                  c2_country_code: CountryCode, c2_domain: str, c2_domain_resolved: str, c2_hostname: str,
                  c2_location: GeoLocation, c2_region: str, c2_timezone: Timezone, cookie_id: CookieId, user_agent: str,
                  tags: typing.List[Tag]):
@@ -188,7 +196,7 @@ class C2Beacon:
         self.actor_region = actor_region
         self.actor_timezone = actor_timezone
         self.c2 = c2
-        self.c2_asn_org = c2_asn_org
+        self.c2_asn_organization = c2_asn_organization
         self.c2_city = c2_city
         self.c2_country_code = c2_country_code
         self.c2_domain = c2_domain
@@ -205,24 +213,24 @@ class C2Beacon:
     def from_response_line(response):
         return C2Beacon(
             DateTimeFactory.from_str(response["tstamp"]),
-            None if response["actorasnorg"] == 'NA' else response["actorasnorg"],
-            None if response["actorcity"] == 'NA' else response["actorcity"],
-            None if response["actorcountrycode"] == 'NA' else response["actorcountrycode"],
-            None if response["actorhostname"] == 'NA' else response["actorhostname"],
-            None if response["actorip"] == 'NA' else response["actorip"],
-            None if response["actorloc"] == 'NA' else GeoLocation.from_string(response["actorloc"]),
-            None if response["actorregion"] == 'NA' else response["actorregion"],
-            None if response["actortimezone"] == 'NA' else response["actortimezone"],
-            None if response["c2"] == 'NA' else response["c2"],
-            None if response["c2asnorg"] == 'NA' else response["c2asnorg"],
-            None if response["c2city"] == 'NA' else response["c2city"],
-            None if response["c2countrycode"] == 'NA' else response["c2countrycode"],
-            None if response["c2domain"] == 'NA' else response["c2domain"],
-            None if response["c2domainresolved"] == 'NA' else response["c2domainresolved"],
-            None if response["c2hostname"] == 'NA' else response["c2hostname"],
-            GeoLocation.from_string(response["c2loc"]),
-            None if response["c2region"] == 'NA' else response["c2region"],
-            None if response["c2timezone"] == 'NA' else response["c2timezone"],
+            None if MalBeaconClient.is_null(response["actorasnorg"]) else response["actorasnorg"],
+            None if MalBeaconClient.is_null(response["actorcity"]) else response["actorcity"],
+            None if MalBeaconClient.is_null(response["actorcountrycode"]) else response["actorcountrycode"],
+            None if MalBeaconClient.is_null(response["actorhostname"]) else response["actorhostname"],
+            None if MalBeaconClient.is_null(response["actorip"]) else response["actorip"],
+            None if MalBeaconClient.is_null(response["actorloc"]) else GeoLocation.from_string(response["actorloc"]),
+            None if MalBeaconClient.is_null(response["actorregion"]) else response["actorregion"],
+            None if MalBeaconClient.is_null(response["actortimezone"]) else response["actortimezone"],
+            None if MalBeaconClient.is_null(response["c2"]) else response["c2"],
+            None if MalBeaconClient.is_null(response["c2asnorg"]) else response["c2asnorg"],
+            None if MalBeaconClient.is_null(response["c2city"]) else response["c2city"],
+            None if MalBeaconClient.is_null(response["c2countrycode"]) else response["c2countrycode"],
+            None if MalBeaconClient.is_null(response["c2domain"]) else response["c2domain"],
+            None if MalBeaconClient.is_null(response["c2domainresolved"]) else response["c2domainresolved"],
+            None if MalBeaconClient.is_null(response["c2hostname"]) else response["c2hostname"],
+            None if MalBeaconClient.is_null(response["c2loc"]) else GeoLocation.from_string(response["c2loc"]),
+            None if MalBeaconClient.is_null(response["c2region"]) else response["c2region"],
+            None if MalBeaconClient.is_null(response["c2timezone"]) else response["c2timezone"],
             CookieId(response["cookie_id"]),
             None if response["useragent"] == 'NA' else response["useragent"],
             [] if response["tags"] == 'NA' else [Tag(response["tags"])],
@@ -245,6 +253,10 @@ class MalBeaconClient:
             'X-Api-Key': api_key,
             'User-Agent': user_agent,
         }
+
+    @staticmethod
+    def is_null(value):
+        return value == 'NA' or value is None
 
     def _get(self, url):
         response = self.session.get(url)
@@ -277,7 +289,7 @@ def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
-    cookie_id_parser = subparsers.add_parser('cookie', help='List C2 beacons of specified cookie ID.')
+    cookie_id_parser = subparsers.add_parser('cookie', help='List beacons of specified cookie ID.')
     cookie_id_parser.add_argument('cookie_id')
 
     parser.add_argument('--debug', action='store_true')
