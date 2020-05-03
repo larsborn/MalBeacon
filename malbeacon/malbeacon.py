@@ -71,11 +71,6 @@ class MalBeaconPrivilegedAccountRequiredException(MalBeaconApiException):
         super().__init__('PrivilegedAccountRequired', url)
 
 
-class MalBeaconNoResultsException(MalBeaconApiException):
-    def __init__(self, url):
-        super().__init__('NoResults', url)
-
-
 class MalBeaconBadRequestException(MalBeaconApiException):
     def __init__(self, url):
         super().__init__('BadRequest', url)
@@ -253,12 +248,16 @@ class MalBeaconClient:
 
     def _get(self, url):
         response = self.session.get(url)
+        if response.status_code == 400:
+            if response.json()['message'] == 'ERROR: No Results':
+                return []
+            raise MalBeaconApiException(F'Generic API Exception: {response.content}', url)
         if response.status_code == 401:
             if response.json()['message'] == 'ERROR: Unauthorized':
                 raise MalBeaconUnauthorizedException(url)
-            raise MalBeaconException(F'Api-Exception: {response.content}')
+            raise MalBeaconApiException(F'Generic API Exception: {response.content}', url)
         if response.status_code != 200:
-            raise MalBeaconException(F'Api-Exception: {response.content}')
+            raise MalBeaconApiException(F'Generic API Exception: {response.content}', url)
 
         return response.json()
 
