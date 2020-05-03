@@ -418,6 +418,9 @@ def main():
         ]:
             table_data = [['Timestamp', 'Actor IP', 'C2 URL']]
             user_agents = []
+            c2_asns = []
+            actor_asns = []
+            tags = []
             reduced_data = False
             activity_timestamps = []
             for c2_beacon in {
@@ -439,8 +442,16 @@ def main():
                     print(json.dumps(c2_beacon, cls=CustomJsonEncoder))
                 else:
                     activity_timestamps.append(c2_beacon.timestamp)
-                    if c2_beacon.user_agent not in user_agents:
+                    if c2_beacon.user_agent and c2_beacon.user_agent not in user_agents:
                         user_agents.append(c2_beacon.user_agent)
+                    if c2_beacon.actor_asn_organization and c2_beacon.actor_asn_organization not in actor_asns:
+                        actor_asns.append(c2_beacon.actor_asn_organization)
+                    if c2_beacon.c2_asn_organization and c2_beacon.c2_asn_organization not in c2_asns:
+                        c2_asns.append(c2_beacon.c2_asn_organization)
+                    if c2_beacon.tags:
+                        for tag in c2_beacon.tags:
+                            if tag.value not in tags:
+                                tags.append(tag.value)
                     if table_data \
                             and table_data[len(table_data) - 1][1] == c2_beacon.actor_ip \
                             and table_data[len(table_data) - 1][2] == c2_beacon.c2:
@@ -456,17 +467,11 @@ def main():
             if not args.json:
                 from terminaltables import GithubFlavoredMarkdownTable as TerminalTable
                 print(TerminalTable(table_data=table_data).table)
-                if user_agents:
-                    print('')
-                    print('User-Agents:')
-                    for user_agent in user_agents[:5]:
-                        print(F'    {user_agent}')
-                    if len(user_agents) > 5:
-                        print('    ...')
-                        reduced_data = True
-                    print('')
                 print('')
                 Printer.list('User-Agents', user_agents)
+                Printer.list('C2 ASNs', c2_asns)
+                Printer.list('Actor ASNs', actor_asns)
+                Printer.list('Tags', tags)
                 if activity_timestamps:
                     print(F'First Active: {DateTimeFactory.to_str(min(activity_timestamps))}')
                     print(F'Last Active: {DateTimeFactory.to_str(max(activity_timestamps))}')
