@@ -50,13 +50,25 @@ class MalBeaconException(Exception):
     pass
 
 
-def print_histogram(data, target_width=80 - 10):
-    factor = float(target_width) / float(max(data.values()))
-    for key in sorted(data.keys()):
-        if data[key]:
-            width = round(data[key] * factor)
-            bar = 'o' * width
-            print(F'{key:2}: {bar} ({data[key]})')
+class Printer:
+    @staticmethod
+    def histogram(data, target_width=80 - 10):
+        factor = float(target_width) / float(max(data.values()))
+        for key in sorted(data.keys()):
+            if data[key]:
+                width = round(data[key] * factor)
+                bar = 'o' * width
+                print(F'{key:2}: {bar} ({data[key]})')
+
+    @staticmethod
+    def list(title, lst, limit=5):
+        if lst:
+            print(F'{title}:')
+            for element in lst[:limit]:
+                print(F'    {element}')
+            if len(lst) > limit:
+                print('    ...')
+            print('')
 
 
 class MalBeaconApiException(MalBeaconException):
@@ -453,6 +465,8 @@ def main():
                         print('    ...')
                         reduced_data = True
                     print('')
+                print('')
+                Printer.list('User-Agents', user_agents)
                 if activity_timestamps:
                     print(F'First Active: {DateTimeFactory.to_str(min(activity_timestamps))}')
                     print(F'Last Active: {DateTimeFactory.to_str(max(activity_timestamps))}')
@@ -464,7 +478,7 @@ def main():
                         if hour not in hours.keys():
                             hours[hour] = 0
                         hours[hour] += 1
-                    print_histogram(hours)
+                    Printer.histogram(hours)
                 if reduced_data:
                     logger.info('Some data was for clarity reasons, specify --json to dump everything.')
     except MalBeaconUnauthorizedException as e:
